@@ -1,4 +1,4 @@
-#Image segmentation on active contour model
+# Image segmentation on active contour model
 
 Removing the background from a set of images in a folder using Active contour model https://en.wikipedia.org/wiki/Active_contour_model.
 
