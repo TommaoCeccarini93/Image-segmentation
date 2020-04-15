@@ -15,8 +15,8 @@ import cv2
 from PIL import Image
 import piexif
 
-def removeBackground(imagename,readFolder,writeFolder,w_res=2600,h_res=1733):
-    #Uso PIL e piexif per salvare gli Exif data
+def removeBackground(imagename,readFolder,writeFolder,alpha,beta,size,w_res,h_res):
+    #Use PIL and piexif to save exif data
     im = Image.open(readFolder+'/'+imagename)
     exif_dict = piexif.load(im.info["exif"])
     exif_bytes = piexif.dump(exif_dict)
@@ -25,32 +25,19 @@ def removeBackground(imagename,readFolder,writeFolder,w_res=2600,h_res=1733):
     image = cv2.resize(image,(w_res,h_res))
     img = image.copy()
     img = rgb2gray(img)
-    #img = cv2.resize(img,(2600,1733))
 
     #initial contour (ellipse)
-    s = np.linspace(0, 2*np.pi, 1000)
+    s = np.linspace(0, 2*np.pi, size)
     r = 840 + 850*np.sin(s)
     c = 1250 + 750*np.cos(s)
 
     init = np.array([r, c]).T
 
-    snake = active_contour(gaussian(img, 3),init, alpha=0.015, beta=10, gamma=0.001,coordinates='rc')
-    
-    """"
-    fig, ax = plt.subplots(figsize=(7, 7))
-    ax.imshow(img, cmap=plt.cm.gray)
-    ax.plot(init[:, 1], init[:, 0], '--r', lw=3)
-    ax.plot(snake[:, 1], snake[:, 0], '-b', lw=3)
-    ax.set_xticks([]), ax.set_yticks([])
-    ax.axis([0, img.shape[1], img.shape[0], 0])
-
-    plt.show()
-    """
+    snake = active_contour(gaussian(img, 3),init, alpha=alpha, beta=beta, gamma=0.001,coordinates='rc')
     
     mask = np.zeros(img.shape)
     rr,cc = polygon(snake[:,0],snake[:,1],mask.shape)
     mask[rr,cc] = 1
-    #mask = 1 - mask
     masked = ma.array(img.copy(),mask=mask)
     m = masked.data*masked.mask
 
@@ -61,7 +48,7 @@ def removeBackground(imagename,readFolder,writeFolder,w_res=2600,h_res=1733):
 
     cv2.imwrite(writeFolder+'/'+imagename,masked_image,[cv2.IMWRITE_JPEG_QUALITY, 100])
     
-    #aggiungo gli exif data dell'immagine originale all'immagine senza background
+    #add the exif data of the original image to the image without background
     im = Image.open(writeFolder+'/'+imagename)
     im.save(writeFolder+'/'+imagename,"JPEG",quality=100,exif=exif_bytes)
 
